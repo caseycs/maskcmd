@@ -6,7 +6,5 @@ ARG TARGETARCH
 
 ARG MASKCMD_VERSION=0.0.4
 
-RUN echo wget -o /usr/local/bin/maskcmd https://github.com/caseycs/maskcmd/releases/download/$MASKCMD_VERSION/maskcmd-$TARGETOS-$TARGETARCH
-
 RUN wget -o /usr/local/bin/maskcmd https://github.com/caseycs/maskcmd/releases/download/$MASKCMD_VERSION/maskcmd-$TARGETOS-$TARGETARCH \
     && chmod +x /usr/local/bin/maskcmd
