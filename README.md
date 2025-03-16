@@ -26,7 +26,7 @@ maskcmd-example-mm2nj: Error: exit status 128
 maskcmd-example-mm2nj Failed at 2025-03-16 22:42:35 +0100 CET
 ```
 
-Notice that there no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****@`).
+Notice that there is no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****`).
 
 [Example K8S manigests](/argo-workflow-example).
 
