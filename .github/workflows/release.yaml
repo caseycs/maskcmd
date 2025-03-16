@@ -11,15 +11,7 @@ permissions:
 jobs:
   build:
     name: Build Go Binaries
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        goos: [linux]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: darwin
-            goarch: arm64  # macOS ARM requires cross-compilation tools
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Get release version from tag
