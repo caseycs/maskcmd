@@ -10,7 +10,7 @@ Useful for bash scripts within K8S native pipelines, like Argo Workflows.
 Mask files content in certain dir:
 
 ```bash
-# imagine argo Argo Workflow with mounted secrets
+# imagine Argo Workflow with mounted secrets
 mkdir -p /tmp/maskcmd-tmp
 echo "password" > /tmp/maskcmd-tmp/db-password
 
