@@ -39,7 +39,9 @@ secret is *****
 Original exit code is preserved:
 
 ```bash
-./maskcmd --env-vars SECRET -- sh -c "exit 5"
+export SECRET=mysecret
+./maskcmd --env-vars SECRET -- sh -c "echo secret=mysecret; exit 5"
+secret=*****
 Error: child command returned exit code: 5
 echo $?
 5
