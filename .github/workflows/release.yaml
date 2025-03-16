@@ -45,8 +45,8 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            dist/app-linux-amd64
-            dist/app-linux-arm64
-            dist/app-macos-arm64
+            dist/maskcmd-linux-amd64
+            dist/maskcmd-linux-arm64
+            dist/maskcmd-macos-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
