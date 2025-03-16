@@ -12,52 +12,52 @@ env:
   ALPINE_GIT_VERSION: v2.47.2
 
 jobs:
-  # build:
-  #   name: Release go binaries
-  #   runs-on: ubuntu-20.04
+  build:
+    name: Release go binaries
+    runs-on: ubuntu-20.04
 
-  #   steps:
-  #     - name: Get release version from tag
-  #       run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+    steps:
+      - name: Get release version from tag
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-  #     - name: Checkout code
-  #       uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: "1.21" # Change to the required Go version
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21" # Change to the required Go version
 
-  #     - name: Install dependencies
-  #       run: go mod tidy
+      - name: Install dependencies
+        run: go mod tidy
 
-  #     - name: Build binaries for multiple platforms
-  #       run: |
-  #         mkdir -p dist
-  #         GOOS=linux GOARCH=amd64 go build -o dist/maskcmd-linux-amd64 .
-  #         GOOS=linux GOARCH=arm64 go build -o dist/maskcmd-linux-arm64 .
-  #         GOOS=darwin GOARCH=arm64 go build -o dist/maskcmd-macos-arm64 .
+      - name: Build binaries for multiple platforms
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build -o dist/maskcmd-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -o dist/maskcmd-linux-arm64 .
+          GOOS=darwin GOARCH=arm64 go build -o dist/maskcmd-macos-arm64 .
 
-  #     - name: Create GitHub Release
-  #       id: create_release
-  #       uses: softprops/action-gh-release@v2
-  #       with:
-  #         tag_name: ${{ env.RELEASE_VERSION }}
-  #         name: Release ${{ env.RELEASE_VERSION }}
-  #         body: "Automated release for version ${{ env.RELEASE_VERSION }}"
-  #         draft: false
-  #         prerelease: false
-  #         files: |
-  #           dist/maskcmd-linux-amd64
-  #           dist/maskcmd-linux-arm64
-  #           dist/maskcmd-macos-arm64
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          body: "Automated release for version ${{ env.RELEASE_VERSION }}"
+          draft: false
+          prerelease: false
+          files: |
+            dist/maskcmd-linux-amd64
+            dist/maskcmd-linux-arm64
+            dist/maskcmd-macos-arm64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
     name: Docker image
     runs-on: ubuntu-20.04
-    # needs: build
+    needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
