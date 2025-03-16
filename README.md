@@ -30,13 +30,12 @@ Notice that there no `bitbucket-repo1-token` (secret value) in the output, but j
 
 [Example K8S manigests](/argo-workflow-example).
 
-
 ### Shell scripts
 
 Mask files content in certain dir:
 
 ```bash
-# simulate argo workflow context with mounted secrets
+# imagine Argo Workflow with mounted secrets
 mkdir -p /tmp/maskcmd-tmp
 echo "password" > /tmp/maskcmd-tmp/db-password
 
@@ -62,6 +61,17 @@ export SECRET=mysecret
 secret is *****
 ```
 
-### Docker image
+Original exit code is preserved:
+
+```bash
+export SECRET=mysecret
+./maskcmd --env-vars SECRET -- sh -c "echo secret=mysecret; exit 5"
+secret=*****
+Error: child command returned exit code: 5
+echo $?
+5
+```
+
+## Docker image
 
 [Dockerfile](/Dockerfile) is based on recent [alpine/git](https://hub.docker.com/r/alpine/git): https://hub.docker.com/r/caseycs/maskcmd/tags
