@@ -150,6 +150,38 @@ func TestCmdMask_MaskSecretsFromDirectory(t *testing.T) {
 	}
 }
 
+func TestCmdMask_MaskSecretsFromDirectory_Symlinks(t *testing.T) {
+	// Create temporary directories
+	testTempDir, err := os.MkdirTemp("", "secrets_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testTempDir) // Cleanup after test
+
+	if err := os.Mkdir(testTempDir+"/..random-name", 0755); err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testTempDir + "/..random-name") // Cleanup after test
+
+	// Create secret files
+	createTempSecretFile(testTempDir+"/..random-name", "token", "mypassword")
+
+	// Symlink like mounted K8S secret
+	if err = os.Symlink(testTempDir+"/..random-name", testTempDir+"/..data"); err != nil {
+		t.Fatal(err)
+	}
+
+	output, _, err := executeCommand(buildCmdMask(), "--secrets-dir", testTempDir, "--", "echo", "Password is mypassword")
+	if err != nil {
+		t.Fatalf("Error executing command: %v", err)
+	}
+
+	expected := "Password is *****"
+	if !strings.Contains(output, expected) {
+		t.Errorf("Expected output %q, got %q", expected, output)
+	}
+}
+
 func TestCmdMask_CustomExitCode(t *testing.T) {
 	os.Setenv("SECRET", "mysecret")
 	defer os.Unsetenv("SECRET")

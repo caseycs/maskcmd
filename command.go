@@ -186,29 +186,25 @@ func readSecretsFromDir(dirPath string) ([]string, error) {
 			return err
 		}
 
-		if !info.IsDir() { // Read only files
-			if info.Size() > maxSecretLength {
-				return fmt.Errorf("secret file %s is too large (above %dkb)", path, maxSecretLength/1024)
-			}
-
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				secret := strings.TrimSpace(scanner.Text())
-				if secret != "" {
-					secrets = append(secrets, secret)
-				}
-			}
-
-			if err := scanner.Err(); err != nil {
-				return err
-			}
+		// Resolve symlinks
+		resolvedInfo, err := os.Stat(path)
+		if err != nil {
+			return err // skip broken symlinks or inaccessible files
 		}
+
+		if !resolvedInfo.Mode().IsRegular() {
+			return nil
+		}
+
+		if info.Size() > maxSecretLength {
+			return fmt.Errorf("secret file %s is too large (above %dkb)", path, maxSecretLength/1024)
+		}
+
+		secret, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		secrets = append(secrets, strings.TrimSpace(string(secret)))
 		return nil
 	})
 
