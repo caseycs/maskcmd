@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestMaskLine(t *testing.T) {
@@ -146,6 +147,46 @@ func TestCmdMask_MaskSecretsFromDirectory(t *testing.T) {
 	expected := "Password is *****"
 	if !strings.Contains(output, expected) {
 		t.Errorf("Expected output %q, got %q", expected, output)
+	}
+}
+
+func TestCmdMask_MaskSecretsFromDirectory_Symlinks(t *testing.T) {
+	// Create temporary directories and symlinks similar to mounted K8S pod secret
+	testTempDir, err := os.MkdirTemp("", "secrets_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testTempDir) // Cleanup after test
+
+	if err := os.Mkdir(testTempDir+"/..random-name", 0755); err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(testTempDir + "/..random-name") // Cleanup after test
+
+	// Create secret file
+	createTempSecretFile(testTempDir+"/..random-name", "token", "mypassword")
+	if err = os.Symlink(testTempDir+"/..random-name/token", testTempDir+"/token"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Symlink like mounted K8S secret
+	if err = os.Symlink(testTempDir+"/..random-name", testTempDir+"/..data"); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout, stderr, err := executeCommand(buildCmdMask(), "--secrets-dir", testTempDir, "--", "echo", "Password is mypassword")
+	if err != nil {
+		t.Fatalf("Error executing command: %v", err)
+	}
+
+	expectedStdOut := "Password is *****"
+	if strings.TrimSpace(stdout) != expectedStdOut {
+		t.Errorf("Expected stdout %q, got %q", expectedStdOut, stdout)
+	}
+
+	expectedStdErr := ""
+	if strings.TrimSpace(stderr) != expectedStdErr {
+		t.Errorf("Expected stderr %q, got %q", expectedStdErr, stderr)
 	}
 }
 

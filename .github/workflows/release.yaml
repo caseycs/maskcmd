@@ -3,27 +3,27 @@ name: Release
 on:
   push:
     tags:
-      - 'v*' # Trigger only when a tag starting with 'v' is pushed (e.g., v1.0.0)
+      - "v*" # Trigger only when a tag starting with 'v' is pushed (e.g., v1.0.0)
 
 permissions:
   contents: write
 
+env:
+  ALPINE_GIT_VERSION: v2.47.2
+
 jobs:
   build:
-    name: Build Go Binaries
+    name: Publish binaries
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Get release version from tag
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21' # Change to the required Go version
+          go-version: "1.21" # Change to the required Go version
 
       - name: Install dependencies
         run: go mod tidy
@@ -31,22 +31,60 @@ jobs:
       - name: Build binaries for multiple platforms
         run: |
           mkdir -p dist
-          GOOS=linux GOARCH=amd64 go build -o dist/app-linux-amd64 .
-          GOOS=linux GOARCH=arm64 go build -o dist/app-linux-arm64 .
-          GOOS=darwin GOARCH=arm64 go build -o dist/app-macos-arm64 .
+          GOOS=linux GOARCH=amd64 go build -o dist/maskcmd-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -o dist/maskcmd-linux-arm64 .
+          GOOS=darwin GOARCH=arm64 go build -o dist/maskcmd-macos-arm64 .
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: Release ${{ env.RELEASE_VERSION }}
-          body: "Automated release for version ${{ env.RELEASE_VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Automated release for version ${{ github.ref_name }}"
           draft: false
           prerelease: false
           files: |
-            dist/app-linux-amd64
-            dist/app-linux-arm64
-            dist/app-macos-arm64
+            dist/maskcmd-linux-amd64
+            dist/maskcmd-linux-arm64
+            dist/maskcmd-macos-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    name: Publish docker image
+    runs-on: ubuntu-20.04
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PAT }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: caseycs/maskcmd
+          tags: |
+            type=semver,pattern=${{ env.ALPINE_GIT_VERSION }}-{{major}}{{minor}}{{patch}}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: |
+            linux/amd64
+            linux/arm64
+          build-args: |
+            ALPINE_GIT_VERSION=${{ env.ALPINE_GIT_VERSION }}
+            MASKCMD_VERSION=${{ github.ref_name }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}

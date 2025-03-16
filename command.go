@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"os/exec"
@@ -13,6 +12,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/spf13/cobra"
 )
 
 const maxSecretLength = 4096
@@ -36,7 +37,7 @@ func cmdMask(cmd *cobra.Command, args []string) error {
 	if secretsDir, _ := cmd.Flags().GetString("secrets-dir"); secretsDir != "" {
 		secretsFromFiles, err := readSecretsFromDir(secretsDir)
 		if err != nil {
-			return fmt.Errorf("error reading secrets from directory")
+			return fmt.Errorf("error reading secrets from directory: %v", err)
 		}
 		masks = append(masks, secretsFromFiles...)
 	}
@@ -185,29 +186,25 @@ func readSecretsFromDir(dirPath string) ([]string, error) {
 			return err
 		}
 
-		if !info.IsDir() { // Read only files
-			if info.Size() > maxSecretLength {
-				return fmt.Errorf("secret file %s is too large (above %dkb)", path, maxSecretLength/1024)
-			}
-
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer file.Close()
-
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				secret := strings.TrimSpace(scanner.Text())
-				if secret != "" {
-					secrets = append(secrets, secret)
-				}
-			}
-
-			if err := scanner.Err(); err != nil {
-				return err
-			}
+		// Resolve symlinks
+		resolvedInfo, err := os.Lstat(path)
+		if err != nil {
+			return err // skip broken symlinks or inaccessible files
 		}
+
+		if !resolvedInfo.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+
+		if info.Size() > maxSecretLength {
+			return fmt.Errorf("secret file %s is too large (above %dkb)", path, maxSecretLength/1024)
+		}
+
+		secret, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		secrets = append(secrets, strings.TrimSpace(string(secret)))
 		return nil
 	})
 
