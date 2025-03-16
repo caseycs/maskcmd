@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
-	"github.com/spf13/cobra"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestMaskLine(t *testing.T) {
