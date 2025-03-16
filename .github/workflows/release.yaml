@@ -17,9 +17,6 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - name: Get release version from tag
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -42,9 +39,9 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          name: Release ${{ env.RELEASE_VERSION }}
-          body: "Automated release for version ${{ env.RELEASE_VERSION }}"
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Automated release for version ${{ github.ref_name }}"
           draft: false
           prerelease: false
           files: |
@@ -88,6 +85,6 @@ jobs:
             linux/arm64
           build-args: |
             ALPINE_GIT_VERSION=${{ env.ALPINE_GIT_VERSION }}
-            MASKCMD_VERSION=${{ env.RELEASE_VERSION }}
+            MASKCMD_VERSION=${{ github.ref_name }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
