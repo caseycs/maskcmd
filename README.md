@@ -28,7 +28,7 @@ maskcmd-example-mm2nj Failed at 2025-03-16 22:42:35 +0100 CET
 
 Notice that there is no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****`).
 
-[Example K8S manifests]([argo-workflow-example/example.yaml), [secret]([argo-workflow-example/sectet.yaml).
+[Example K8S manifests](/argo-workflow-example/example.yaml), [secret](/argo-workflow-example/sectet.yaml).
 
 ### Shell scripts
 
