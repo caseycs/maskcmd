@@ -5,11 +5,7 @@ Useful for bash scripts within K8S native pipelines, like Argo Workflows.
 
 ## Usage examples
 
-### Argo Workflow 
-
-
-
-### shell scripts
+### Shell scripts
 
 Mask files content in certain dir:
 
