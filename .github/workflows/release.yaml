@@ -77,7 +77,7 @@ jobs:
         with:
           images: caseycs/maskcmd
           tags: |
-            type=semver,pattern={{version}}-{{major}}{{minor}}{{patch}}
+            type=semver,pattern=v{{version}}-{{major}}{{minor}}{{patch}}
 
       - name: Build and Push Docker image
         uses: docker/build-push-action@v6
