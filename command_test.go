@@ -68,11 +68,11 @@ func TestReadSecretsFromDir(t *testing.T) {
 	}
 }
 
-func TestMaskCommand_MaskingAllEnvs(t *testing.T) {
+func TestCmdMask_MaskAllEnvVars(t *testing.T) {
 	os.Setenv("MYPASSWORD", "mypassword")
 	defer os.Unsetenv("MYPASSWORD")
 
-	output, err := executeCommand(buildCmdMask(), "--all-env-vars", "--", "echo", "Password is mypassword")
+	output, _, err := executeCommand(buildCmdMask(), "--all-env-vars", "--", "echo", "Password is mypassword")
 	if err != nil {
 		t.Fatalf("Error executing command: %v", err)
 	}
@@ -83,24 +83,51 @@ func TestMaskCommand_MaskingAllEnvs(t *testing.T) {
 	}
 }
 
-func TestMaskCommand_MaskingCertainEnvs(t *testing.T) {
-	os.Setenv("MYP1", "p1")
-	os.Setenv("MYP2", "p2")
-	defer os.Unsetenv("MYP1")
-	defer os.Unsetenv("MYP2")
-
-	output, err := executeCommand(buildCmdMask(), "--env-vars", "MYP1,MYP2", "--", "echo", "Passwords are p1 and p2")
-	if err != nil {
-		t.Fatalf("Error executing command: %v", err)
+func TestCmdMask_MaskCertainEnvs(t *testing.T) {
+	tests := map[string]struct {
+		envVars        map[string]string
+		echoString     string
+		expectedStdOut string
+		expectedStdErr string
+	}{
+		"simplest case": {
+			map[string]string{"MYP1": "p1", "MYP2": "p2"},
+			"Passwords are p1 and p2",
+			"Passwords are ***** and *****",
+			""},
+		"overlapping secrets": {
+			map[string]string{"MYP1": "p1", "MYP2": "p1p2"},
+			"Password is p1p2",
+			"Password is *****",
+			"Warning: overlapping secrets detected: p**2 and p1"},
 	}
 
-	expected := "Passwords are ***** and *****"
-	if !strings.Contains(output, expected) {
-		t.Errorf("Expected output %q, got %q", expected, output)
+	for _, test := range tests {
+		for k, v := range test.envVars {
+			os.Setenv(k, v)
+			defer os.Unsetenv(k)
+		}
+
+		envKeys := make([]string, 0, len(test.envVars))
+		for k := range test.envVars {
+			envKeys = append(envKeys, k)
+		}
+		joinedKeys := strings.Join(envKeys, ",")
+		stdout, stderr, err := executeCommand(buildCmdMask(), "--env-vars", joinedKeys, "--", "echo", test.echoString)
+
+		if err != nil {
+			t.Fatalf("Error executing command: %v", err)
+		}
+		if strings.TrimSpace(stdout) != test.expectedStdOut {
+			t.Errorf("Expected stdout %q, got %q", test.expectedStdOut, stdout)
+		}
+		if strings.TrimSpace(stderr) != test.expectedStdErr {
+			t.Errorf("Expected stderr %q, got %q", test.expectedStdErr, stderr)
+		}
 	}
 }
 
-func TestMaskCommand_MaskingDir(t *testing.T) {
+func TestCmdMask_MaskSecretsFromDirectory(t *testing.T) {
 	// Create a temporary directory
 	tempDir, err := os.MkdirTemp("", "secrets_test")
 	if err != nil {
@@ -111,7 +138,7 @@ func TestMaskCommand_MaskingDir(t *testing.T) {
 	// Create secret files
 	createTempSecretFile(tempDir, "password.txt", "mypassword")
 
-	output, err := executeCommand(buildCmdMask(), "--secrets-dir", tempDir, "--", "echo", "Password is mypassword")
+	output, _, err := executeCommand(buildCmdMask(), "--secrets-dir", tempDir, "--", "echo", "Password is mypassword")
 	if err != nil {
 		t.Fatalf("Error executing command: %v", err)
 	}
@@ -122,12 +149,15 @@ func TestMaskCommand_MaskingDir(t *testing.T) {
 	}
 }
 
-func executeCommand(cmd *cobra.Command, args ...string) (string, error) {
-	buf := new(bytes.Buffer)
-	cmd.SetOut(buf)
-	cmd.SetErr(buf)
+func executeCommand(cmd *cobra.Command, args ...string) (string, string, error) {
+	bufOut := new(bytes.Buffer)
+	cmd.SetOut(bufOut)
+
+	bufErr := new(bytes.Buffer)
+	cmd.SetErr(bufErr)
+
 	cmd.SetArgs(args)
 
 	err := cmd.Execute()
-	return buf.String(), err
+	return bufOut.String(), bufErr.String(), err
 }

@@ -2,7 +2,10 @@ module caseycs/cli-secrets-mask
 
 go 1.24.0
 
-require github.com/spf13/cobra v1.9.1
+require (
+	github.com/davecgh/go-spew v1.1.1
+	github.com/spf13/cobra v1.9.1
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -47,10 +49,18 @@ func cmdMask(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(masks) == 0 {
-		return fmt.Errorf("no secrets found")
+		return fmt.Errorf("no secrets defined")
 	}
 
-	// Run the command
+	// Sort masks by string length (longest first) - to tacke overlapping secrets
+	sort.Slice(masks, func(i, j int) bool {
+		return len(masks[i]) > len(masks[j])
+	})
+
+	// check for overlapping secrets
+	checkForOverlappingSecrets(cmd, masks)
+
+	// Run external command
 	cmdToRun := exec.Command(args[0], args[1:]...)
 
 	// Capture stdout and stderr
@@ -78,13 +88,39 @@ func cmdMask(cmd *cobra.Command, args []string) error {
 
 	// Wait for the command to complete and capture its exit code
 	if err := cmdToRun.Wait(); err != nil {
-		if exitError, ok := err.(*exec.ExitError); ok {
-			os.Exit(exitError.ExitCode()) // Return the same exit code as the original command
+		if cmdExit, ok := err.(*exec.ExitError); ok {
+			return &ExitCodeError{Code: cmdExit.ExitCode()} // Return the same exit code as the original command
 		}
 		return fmt.Errorf("command execution failed: %v", err)
 	}
 
 	return nil
+}
+
+func checkForOverlappingSecrets(cmd *cobra.Command, masks []string) {
+	var ignoreMask []int
+	for i := 0; i < len(masks); i++ {
+		if slices.Contains(ignoreMask, i) {
+			continue
+		}
+		for j := i + 1; j < len(masks); j++ {
+			if slices.Contains(ignoreMask, j) {
+				continue
+			}
+			if strings.Contains(masks[i], masks[j]) || strings.Contains(masks[j], masks[i]) {
+				m1 := masks[i]
+				m2 := masks[j]
+				if len(m1) > 2 {
+					m1 = fmt.Sprintf("%c%s%c", m1[0], strings.Repeat("*", len(m1)-2), m1[len(m1)-1])
+				}
+				if len(m2) > 2 {
+					m2 = fmt.Sprintf("%c%s%c", m2[0], strings.Repeat("*", len(m2)-2), m2[len(m2)-1])
+				}
+				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: overlapping secrets detected: %s and %s\n", m1, m2)
+				ignoreMask = append(ignoreMask, i, j)
+			}
+		}
+	}
 }
 
 func collectEnvValues(envVars string) []string {
@@ -119,6 +155,9 @@ func collectAllEnvValues() []string {
 // maskLine replaces sensitive substrings in a given line.
 func maskLine(line string, masks []string) string {
 	for _, mask := range masks {
+		if len(mask) > len(line) {
+			continue
+		}
 		line = strings.ReplaceAll(line, mask, "*****")
 	}
 	return line

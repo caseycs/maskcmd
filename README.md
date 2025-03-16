@@ -5,6 +5,12 @@ Useful for bash scripts within K8S native pipelines, like Argo Workflows.
 
 ## Usage examples
 
+### Argo Workflow 
+
+
+
+### shell scripts
+
 Mask files content in certain dir:
 
 ```bash
@@ -14,7 +20,7 @@ echo "password" > /tmp/maskcmd-tmp/db-password
 
 # actual command
 ./maskcmd --secrets-dir /tmp/maskcmd-tmp -- bash -c "echo psql -W $(cat /tmp/maskcmd-tmp/db-password)"
-# will produce: psql -W *****
+psql -W *****
 ```
 
 Mask all environment variables values:
@@ -22,6 +28,7 @@ Mask all environment variables values:
 ```bash
 export SECRET=mysecret
 ./maskcmd --all-env-vars -- bash -c 'echo secret is $SECRET'
+# probably number of "Warning: overlapping secrets detected..."
 secret is *****
 ```
 
@@ -32,6 +39,3 @@ export SECRET=mysecret
 ./maskcmd --env-vars SECRET -- bash -c 'echo secret is $SECRET'
 secret is *****
 ```
-
-## ArgoCD workflow usage exampple
-
