@@ -151,7 +151,7 @@ func TestCmdMask_MaskSecretsFromDirectory(t *testing.T) {
 }
 
 func TestCmdMask_MaskSecretsFromDirectory_Symlinks(t *testing.T) {
-	// Create temporary directories
+	// Create temporary directories and symlinks similar to mounted K8S pod secret
 	testTempDir, err := os.MkdirTemp("", "secrets_test")
 	if err != nil {
 		t.Fatal(err)
@@ -163,22 +163,30 @@ func TestCmdMask_MaskSecretsFromDirectory_Symlinks(t *testing.T) {
 	}
 	defer os.RemoveAll(testTempDir + "/..random-name") // Cleanup after test
 
-	// Create secret files
+	// Create secret file
 	createTempSecretFile(testTempDir+"/..random-name", "token", "mypassword")
+	if err = os.Symlink(testTempDir+"/..random-name/token", testTempDir+"/token"); err != nil {
+		t.Fatal(err)
+	}
 
 	// Symlink like mounted K8S secret
 	if err = os.Symlink(testTempDir+"/..random-name", testTempDir+"/..data"); err != nil {
 		t.Fatal(err)
 	}
 
-	output, _, err := executeCommand(buildCmdMask(), "--secrets-dir", testTempDir, "--", "echo", "Password is mypassword")
+	stdout, stderr, err := executeCommand(buildCmdMask(), "--secrets-dir", testTempDir, "--", "echo", "Password is mypassword")
 	if err != nil {
 		t.Fatalf("Error executing command: %v", err)
 	}
 
-	expected := "Password is *****"
-	if !strings.Contains(output, expected) {
-		t.Errorf("Expected output %q, got %q", expected, output)
+	expectedStdOut := "Password is *****"
+	if strings.TrimSpace(stdout) != expectedStdOut {
+		t.Errorf("Expected stdout %q, got %q", expectedStdOut, stdout)
+	}
+
+	expectedStdErr := ""
+	if strings.TrimSpace(stderr) != expectedStdErr {
+		t.Errorf("Expected stderr %q, got %q", expectedStdErr, stderr)
 	}
 }
 

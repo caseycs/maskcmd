@@ -187,12 +187,12 @@ func readSecretsFromDir(dirPath string) ([]string, error) {
 		}
 
 		// Resolve symlinks
-		resolvedInfo, err := os.Stat(path)
+		resolvedInfo, err := os.Lstat(path)
 		if err != nil {
 			return err // skip broken symlinks or inaccessible files
 		}
 
-		if !resolvedInfo.Mode().IsRegular() {
+		if !resolvedInfo.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
 			return nil
 		}
 
