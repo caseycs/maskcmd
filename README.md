@@ -35,3 +35,12 @@ export SECRET=mysecret
 ./maskcmd --env-vars SECRET -- bash -c 'echo secret is $SECRET'
 secret is *****
 ```
+
+Original exit code is preserved:
+
+```bash
+./maskcmd --env-vars SECRET -- sh -c "exit 5"
+Error: child command returned exit code: 5
+echo $?
+5
+```
