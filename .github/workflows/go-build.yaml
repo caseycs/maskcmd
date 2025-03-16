@@ -1,1 +1,39 @@
-package workflows
+name: Build Go Application
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build Go Binaries
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        goos: [linux]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: darwin
+            goarch: arm64  # macOS ARM requires cross-compilation tools
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21' # Change to the required Go version
+
+      - name: Install dependencies
+        run: go mod tidy
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/maskcmd-${{ matrix.goos }}-${{ matrix.goarch }}
