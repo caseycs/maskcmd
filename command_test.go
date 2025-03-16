@@ -149,6 +149,25 @@ func TestCmdMask_MaskSecretsFromDirectory(t *testing.T) {
 	}
 }
 
+func TestCmdMask_CustomExitCode(t *testing.T) {
+	os.Setenv("SECRET", "mysecret")
+	defer os.Unsetenv("SECRET")
+
+	_, _, err := executeCommand(buildCmdMask(), "--env-vars", "SECRET", "--", "sh", "-c", "exit 5")
+	if err == nil {
+		t.Fatalf("Error expected")
+	}
+
+	e, ok := err.(*ExitCodeError)
+	if !ok {
+		t.Fatalf("Expected ExitCodeError")
+	}
+
+	if e.Code != 5 {
+		t.Fatalf("Expected exit code 5, got %d", e.Code)
+	}
+}
+
 func executeCommand(cmd *cobra.Command, args ...string) (string, string, error) {
 	bufOut := new(bytes.Buffer)
 	cmd.SetOut(bufOut)

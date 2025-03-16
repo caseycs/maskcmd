@@ -17,7 +17,7 @@ func main() {
 			exitCode = 1 // Default error code
 		}
 
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		//fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(exitCode)
 	}
 }
@@ -43,5 +43,5 @@ type ExitCodeError struct {
 }
 
 func (e *ExitCodeError) Error() string {
-	return fmt.Sprintf("exit code: %d", e.Code)
+	return fmt.Sprintf("child command returned exit code: %d", e.Code)
 }

@@ -26,6 +26,9 @@ func cmdMaskPreRun(cmd *cobra.Command, args []string) error {
 }
 
 func cmdMask(cmd *cobra.Command, args []string) error {
+	// do not show hind after initial validation
+	cmd.SilenceUsage = true
+
 	// Collect secrets to mask
 	var masks []string
 
