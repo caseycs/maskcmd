@@ -7,10 +7,10 @@ spec:
   templates:
     - name: demo
       container:
-        image: caseycs/maskcmd:v2.47.2-005
-        command: [maskcmd, --secrets-dir, /secret/, sh, -ex, -c]
+        image: caseycs/maskcmd:v2.47.2-008
+        command: [maskcmd, --secrets-dir, /secret/, --, sh, -exc]
         args: 
-        - |
+        - | 
           git clone https://x-token-auth:$(cat /secret/bitbucket-repo1/token)@bitbucket.org/project1/repo1.git
         volumeMounts:
         - name: secret-bitbucket-repo1
