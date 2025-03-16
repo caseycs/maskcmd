@@ -57,7 +57,7 @@ jobs:
   docker:
     name: Docker image
     runs-on: ubuntu-20.04
-    needs: build
+    # needs: build
     steps:
       - name: Checkout
         uses: actions/checkout@v4
