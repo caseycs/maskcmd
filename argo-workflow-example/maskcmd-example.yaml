@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: maskcmd-example-
+spec:
+  entrypoint: demo
+  templates:
+    - name: demo
+      container:
+        image: caseycs/maskcmd:v2.47.2-005
+        command: [maskcmd, --secrets-dir, /secret/, sh, -ex, -c]
+        args: 
+        - |
+          git clone https://x-token-auth:$(cat /secret/bitbucket-repo1/token)@bitbucket.org/project1/repo1.git
+        volumeMounts:
+        - name: secret-bitbucket-repo1
+          mountPath: "/secret/bitbucket-repo1"
+  volumes:
+  - name: secret-bitbucket-repo1
+    secret:
+      secretName: bitbucket-repo1

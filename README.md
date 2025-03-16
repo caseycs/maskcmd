@@ -39,3 +39,7 @@ export SECRET=mysecret
 ./maskcmd --env-vars SECRET -- bash -c 'echo secret is $SECRET'
 secret is *****
 ```
+
+### Docker image
+
+Based on recent [alpine/git](https://hub.docker.com/r/alpine/git): https://hub.docker.com/r/caseycs/maskcmd/tags
