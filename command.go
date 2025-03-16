@@ -1,0 +1,177 @@
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"github.com/spf13/cobra"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+)
+
+const maxSecretLength = 4096
+
+func cmdMaskPreRun(cmd *cobra.Command, args []string) error {
+	// Ensure at least one flag is set
+	if !cmd.Flags().Changed("secrets-dir") && !cmd.Flags().Changed("all-env-vars") && !cmd.Flags().Changed("env-vars") {
+		return errors.New("at least one flag is required")
+	}
+	return nil
+}
+
+func cmdMask(cmd *cobra.Command, args []string) error {
+	// Collect secrets to mask
+	var masks []string
+
+	// Read secrets from files in directory if provided
+	if secretsDir, _ := cmd.Flags().GetString("secrets-dir"); secretsDir != "" {
+		secretsFromFiles, err := readSecretsFromDir(secretsDir)
+		if err != nil {
+			return fmt.Errorf("error reading secrets from directory")
+		}
+		masks = append(masks, secretsFromFiles...)
+	}
+
+	// Treat all environment variables values as secrets
+	if allEnv, _ := cmd.Flags().GetBool("all-env-vars"); allEnv != false {
+		masks = append(masks, collectAllEnvValues()...)
+	}
+
+	// Treat certain environment variables values as secrets
+	if env, _ := cmd.Flags().GetString("env-vars"); env != "" {
+		masks = append(masks, collectEnvValues(env)...)
+	}
+
+	if len(masks) == 0 {
+		return fmt.Errorf("no secrets found")
+	}
+
+	// Run the command
+	cmdToRun := exec.Command(args[0], args[1:]...)
+
+	// Capture stdout and stderr
+	stdout, err := cmdToRun.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("error getting stdout: %v", err)
+	}
+	stderr, err := cmdToRun.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("error getting stderr: %v", err)
+	}
+
+	// Start the command
+	if err := cmdToRun.Start(); err != nil {
+		return fmt.Errorf("error starting command: %v", err)
+	}
+
+	// Process output in real-time
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go streamOutput(stdout, masks, cmd.OutOrStdout(), &wg)
+	go streamOutput(stderr, masks, cmd.OutOrStderr(), &wg)
+
+	wg.Wait()
+
+	// Wait for the command to complete and capture its exit code
+	if err := cmdToRun.Wait(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			os.Exit(exitError.ExitCode()) // Return the same exit code as the original command
+		}
+		return fmt.Errorf("command execution failed: %v", err)
+	}
+
+	return nil
+}
+
+func collectEnvValues(envVars string) []string {
+	var secrets []string
+
+	envVarsList := strings.Split(envVars, ",")
+	for _, envVar := range envVarsList {
+		envVar = strings.TrimSpace(envVar)
+		if envVar == "" {
+			continue
+		}
+		value := os.Getenv(envVar)
+		if value != "" {
+			secrets = append(secrets, value)
+		}
+	}
+	return secrets
+}
+
+func collectAllEnvValues() []string {
+	var secrets []string
+	envVars := os.Environ()
+	for _, envVar := range envVars {
+		parts := strings.SplitN(envVar, "=", 2)
+		if len(parts) == 2 && parts[1] != "" {
+			secrets = append(secrets, parts[1])
+		}
+	}
+	return secrets
+}
+
+// maskLine replaces sensitive substrings in a given line.
+func maskLine(line string, masks []string) string {
+	for _, mask := range masks {
+		line = strings.ReplaceAll(line, mask, "*****")
+	}
+	return line
+}
+
+// streamOutput reads from the reader, masks sensitive data, and writes to the output writer.
+func streamOutput(reader io.ReadCloser, masks []string, writer io.Writer, wg *sync.WaitGroup) {
+	defer wg.Done()
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		maskedLine := maskLine(scanner.Text(), masks)
+		fmt.Fprintln(writer, maskedLine)
+	}
+}
+
+// readSecretsFromDir recursively reads all files in a directory and returns their contents as a slice of strings.
+func readSecretsFromDir(dirPath string) ([]string, error) {
+	var secrets []string
+
+	err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() { // Read only files
+			if info.Size() > maxSecretLength {
+				return fmt.Errorf("secret file %s is too large (above %dkb)", path, maxSecretLength/1024)
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				secret := strings.TrimSpace(scanner.Text())
+				if secret != "" {
+					secrets = append(secrets, secret)
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return secrets, nil
+}
