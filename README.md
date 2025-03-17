@@ -18,6 +18,7 @@ Created:             Sun Mar 16 22:42:25 +0100 (now)
 Progress:
 maskcmd-example-mm2nj: + git clone https://x-token-auth:*****@bitbucket.org/project1/repo1.git
 maskcmd-example-mm2nj: Cloning into 'repo1'...
+...
 ```
 
 Notice that there is no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****`).
@@ -34,7 +35,8 @@ spec:
       container:
         image: caseycs/maskcmd:v2.47.2-008
         command: [maskcmd, --secrets-dir, /secret/, --, sh, -exc]
- ```
+...
+```
 
 Yes, here is a **major drawback**: you do need to maintain custom image, AFAIK there is no other reliable way to intercept containers output to reduct sensitive data.
 
