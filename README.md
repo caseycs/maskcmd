@@ -1,6 +1,6 @@
 # maskcmd
 
-Wrapper for cli commands to mask unwanted output (e.g. secrets, credentials).
+Wrapper for cli commands to reduct sensitive output (e.g. secrets, credentials).
 Useful for bash scripts within K8S native pipelines, like Argo Workflows.
 
 ## Usage examples
@@ -18,12 +18,6 @@ Created:             Sun Mar 16 22:42:25 +0100 (now)
 Progress:
 maskcmd-example-mm2nj: + git clone https://x-token-auth:*****@bitbucket.org/project1/repo1.git
 maskcmd-example-mm2nj: Cloning into 'repo1'...
-maskcmd-example-mm2nj: remote: You may not have access to this repository or it no longer exists in this workspace. If you think this repository exists and you have access, make sure you are authenticated.
-maskcmd-example-mm2nj: fatal: repository 'https://bitbucket.org/project1/repo1.git/' not found
-maskcmd-example-mm2nj: Error: child command returned exit code: 128
-maskcmd-example-mm2nj: time="2025-03-16T21:42:28.457Z" level=info msg="sub-process exited" argo=true error="<nil>"
-maskcmd-example-mm2nj: Error: exit status 128
-maskcmd-example-mm2nj Failed at 2025-03-16 22:42:35 +0100 CET
 ```
 
 Notice that there is no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****`).
@@ -42,7 +36,7 @@ spec:
         command: [maskcmd, --secrets-dir, /secret/, --, sh, -exc]
  ```
 
-Yes, here is **major drawback**: you do need to maintain custom image, however there is no other reliable way (AFAIK) to intercept containers output to reduct sensitive data.
+Yes, here is a **major drawback**: you do need to maintain custom image, AFAIK there is no other reliable way to intercept containers output to reduct sensitive data.
 
 [Full K8S manifest](/argo-workflow-example/example.yaml), [secret](/argo-workflow-example/sectet.yaml).
 
