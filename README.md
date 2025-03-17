@@ -28,7 +28,23 @@ maskcmd-example-mm2nj Failed at 2025-03-16 22:42:35 +0100 CET
 
 Notice that there is no `bitbucket-repo1-token` (secret value) in the output, but just asterisks (`*****`).
 
-[Example K8S manifests](/argo-workflow-example/example.yaml), [secret](/argo-workflow-example/sectet.yaml).
+How does it work?
+
+```yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+...
+spec:
+  templates:
+    - name: demo
+      container:
+        image: caseycs/maskcmd:v2.47.2-008
+        command: [maskcmd, --secrets-dir, /secret/, --, sh, -exc]
+ ```
+
+Yes, here is **major drawback**: you do need to maintain custom image, however there is no other reliable way (AFAIK) to intercept containers output to reduct sensitive data.
+
+[Full K8S manifest](/argo-workflow-example/example.yaml), [secret](/argo-workflow-example/sectet.yaml).
 
 ### Shell scripts
 
