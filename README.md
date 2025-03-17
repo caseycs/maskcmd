@@ -38,7 +38,7 @@ spec:
 ...
 ```
 
-Yes, here is a **major drawback**: you do need to maintain custom image, AFAIK there is no other reliable way to intercept containers output to reduct sensitive data.
+Yes, here is a **major drawback**: you have to maintain custom images with `maskcmd` binary. 
 
 [Full K8S manifest](/argo-workflow-example/example.yaml), [secret](/argo-workflow-example/sectet.yaml).
 
