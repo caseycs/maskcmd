@@ -1,10 +1,12 @@
+ARG GO_VERSION=1.24
 ARG ALPINE_GIT_VERSION=latest
+
+FROM golang:${GO_VERSION}-alpine AS builder
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
+COPY *.go ./
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o maskcmd .
+
 FROM alpine/git:${ALPINE_GIT_VERSION}
-
-ARG TARGETOS
-ARG TARGETARCH
-
-ARG MASKCMD_VERSION=v0.0.9
-
-RUN wget -O /usr/local/bin/maskcmd https://github.com/caseycs/maskcmd/releases/download/$MASKCMD_VERSION/maskcmd-$TARGETOS-$TARGETARCH \
-    && chmod +x /usr/local/bin/maskcmd
+COPY --from=builder /build/maskcmd /usr/local/bin/maskcmd

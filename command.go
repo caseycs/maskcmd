@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -85,8 +84,8 @@ func cmdMask(cmd *cobra.Command, args []string) error {
 	// Process output in real-time
 	var wg sync.WaitGroup
 	wg.Add(2)
-	go streamOutput(stdout, masks, cmd.OutOrStdout(), &wg)
-	go streamOutput(stderr, masks, cmd.OutOrStderr(), &wg)
+	go streamOutput(stdout, masks, cmd.OutOrStdout(), cmd.ErrOrStderr(), &wg)
+	go streamOutput(stderr, masks, cmd.ErrOrStderr(), cmd.ErrOrStderr(), &wg)
 
 	wg.Wait()
 
@@ -102,16 +101,17 @@ func cmdMask(cmd *cobra.Command, args []string) error {
 }
 
 func checkForOverlappingSecrets(cmd *cobra.Command, masks []string) {
-	var ignoreMask []int
+	seen := make(map[string]bool)
 	for i := 0; i < len(masks); i++ {
-		if slices.Contains(ignoreMask, i) {
-			continue
-		}
 		for j := i + 1; j < len(masks); j++ {
-			if slices.Contains(ignoreMask, j) {
-				continue
-			}
 			if strings.Contains(masks[i], masks[j]) || strings.Contains(masks[j], masks[i]) {
+				// Create a unique key for this pair to avoid duplicate warnings
+				key := masks[i] + "|" + masks[j]
+				if seen[key] {
+					continue
+				}
+				seen[key] = true
+
 				m1 := masks[i]
 				m2 := masks[j]
 				if len(m1) > 2 {
@@ -121,7 +121,6 @@ func checkForOverlappingSecrets(cmd *cobra.Command, masks []string) {
 					m2 = fmt.Sprintf("%c%s%c", m2[0], strings.Repeat("*", len(m2)-2), m2[len(m2)-1])
 				}
 				fmt.Fprintf(cmd.ErrOrStderr(), "Warning: overlapping secrets detected: %s and %s\n", m1, m2)
-				ignoreMask = append(ignoreMask, i, j)
 			}
 		}
 	}
@@ -168,12 +167,15 @@ func maskLine(line string, masks []string) string {
 }
 
 // streamOutput reads from the reader, masks sensitive data, and writes to the output writer.
-func streamOutput(reader io.ReadCloser, masks []string, writer io.Writer, wg *sync.WaitGroup) {
+func streamOutput(reader io.ReadCloser, masks []string, writer io.Writer, errWriter io.Writer, wg *sync.WaitGroup) {
 	defer wg.Done()
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		maskedLine := maskLine(scanner.Text(), masks)
 		fmt.Fprintln(writer, maskedLine)
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(errWriter, "Error reading output: %v\n", err)
 	}
 }
 
