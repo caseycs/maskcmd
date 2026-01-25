@@ -1,5 +1,9 @@
 # maskcmd
 
+[![CI](https://github.com/caseycs/maskcmd/actions/workflows/ci.yml/badge.svg)](https://github.com/caseycs/maskcmd/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/caseycs/maskcmd/branch/main/graph/badge.svg)](https://codecov.io/gh/caseycs/maskcmd)
+[![Go Report Card](https://goreportcard.com/badge/github.com/caseycs/maskcmd)](https://goreportcard.com/report/github.com/caseycs/maskcmd)
+
 Wrapper for cli commands to reduct sensitive output (e.g. secrets, credentials).
 Useful for bash scripts within K8S native pipelines, like Argo Workflows.
 
