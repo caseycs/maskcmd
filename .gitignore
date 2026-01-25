@@ -1,3 +1,5 @@
 .idea
 maskcmd
 coverage.out
+.claude
+.DS_Store
